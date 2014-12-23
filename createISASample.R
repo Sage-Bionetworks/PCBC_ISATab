@@ -5,6 +5,25 @@ library(reshape2)
 library(synapseClient)
 synapseLogin()
 
+## Setup the column names that form different parts of the ISA-Tab records
+
+## descriptors
+metadataTableIdVars <- c("PCBC_Cell_Line_Name", "C4_Cell_Line_ID", "High_Confidence_Donor_ID", "Diffname_short")
+
+
+freetextCols <- c("Small_Molecules", "Other_Conditions_During_Reprogramming",
+                  "Public_Data", "Originating_Lab", "Pubmed_ID")
+
+freetextParams <- c("Culture_Conditions", # should be in regular, not free text, params, but ontology is not consistent
+                    "Reprogramming_Vector_Type"  # should be in regular, not free text, params, but ontology is not consistent
+)
+
+# These columns should be turned into characteristics
+characteristicsCols <- c("Donor_Life_Stage", "Race", "Ethnicity", "Gender", "Genotype",
+                         "Cell_Type", "Host_Species", "Cell_Line_Type", "Tissue_of_Origin",
+                         "Cell_Type_of_Origin", "Cell_Line_of_Origin")
+
+
 ## Get the metadata standard
 metadataStandardSynId <- "syn2767699"
 query <- paste("SELECT * FROM", metadataStandardSynId)
@@ -12,11 +31,20 @@ queryResult <- synTableQuery(query, loadResult=TRUE)
 metadataStandard <- tbl_df(queryResult@values)
 
 ## Get the metadata table describing the cell lines
-metadataTableSynId <- "syn2767694"
-query <- paste("SELECT * FROM", metadataTableSynId)
-queryResult <- synTableQuery(query, loadResult=TRUE)
+## Using annotations on mRNA raw data files
+colnamesToUse <- c(metadataTableIdVars, freetextCols, freetextParams, characteristicsCols)
+                   
+queryAll <- sprintf("select %s from file where benefactorId=='syn1773109' AND dataType=='mRNA'",
+                    paste(colnamesToUse, collapse=","))
 
-metadataTable <- tbl_df(queryResult@values)
+qr <- synQuery(queryAll, blockSize=100)
+mrnaAll <- qr$collectAll()
+mrnaAll <- tbl_df(mrnaAll)
+
+# Clean column names
+colnames(mrnaAll) <- gsub("file\\.", "", colnames(mrnaAll))
+
+metadataTable <- distinct(mrnaAll[, colnamesToUse])
 
 # Only considering those with C4 ID's
 metadataTable <- filter(metadataTable, C4_Cell_Line_ID != "")
@@ -26,25 +54,13 @@ metadataTable <- filter(metadataTable, C4_Cell_Line_ID != 'SC12-041')
 
 # Columns that uniquely identify records
 # Everything else is a measurement
-
-metadataTableIdVars <- c("PCBC_Cell_Line_Name", "C4_Cell_Line_ID", "High_Confidence_Donor_ID")
 metadataTableMelted <- tbl_df(melt(metadataTable, id.vars=metadataTableIdVars))
 
 
 # These are free text, not in the ontology, and don't need Source or Accession descriptor columns
 # Hence, they do not need to be merged with the metadataStandard and can be included as is.
 
-freetextCols <- c("Small_Molecules", "Other_Conditions_During_Reprogramming",
-                  "Public_Data", "Originating_Lab", "Pubmed_ID")
 
-freetextParams <- c("Culture_Conditions", # should be in regular, not free text, params, but ontology is not consistent
-                    "Reprogramming_Vector_Type"  # should be in regular, not free text, params, but ontology is not consistent
-                    )
-
-# These columns should be turned into characteristics
-characteristicsCols <- c("Donor_Life_Stage", "Race", "Ethnicity", "Gender", "Genotype",
-                         "Cell_Type", "Host_Species", "Cell_Line_Type", "Tissue_of_Origin",
-                         "Cell_Type_of_Origin", "Cell_Line_of_Origin")
 
 # These should be Parameter Values
 # paramCols <- c("Reprogramming_Vector_Type")
