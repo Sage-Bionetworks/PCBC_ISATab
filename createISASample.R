@@ -85,33 +85,52 @@ mergedTableCharacteristics <- merge(metadataTableCharacteristics, metadataStanda
 
 # Get value columns
 mergedTableCharacteristicsTermValues <- dcast(mergedTableCharacteristics,
-                                              C4_Cell_Line_ID ~ variable,
+                                              C4_Cell_Line_ID + Diffname_short ~ variable,
                                               value.var="value")
 
-rownames(mergedTableCharacteristicsTermValues) <- mergedTableCharacteristicsTermValues$C4_Cell_Line_ID
+rownames(mergedTableCharacteristicsTermValues) <- with(mergedTableCharacteristicsTermValues,
+                                                       paste(C4_Cell_Line_ID,
+                                                             Diffname_short,
+                                                             sep=" "))
+                                                       
 mergedTableCharacteristicsTermValues$C4_Cell_Line_ID <- NULL
+mergedTableCharacteristicsTermValues$Diffname_short <- NULL
+
 colnames(mergedTableCharacteristicsTermValues) <- paste("Characteristics[", 
-                                         colnames(mergedTableCharacteristicsTermValues), 
-                                         "]", sep="")
+                                                        colnames(mergedTableCharacteristicsTermValues), 
+                                                        "]", sep="")
 
 # Get Source columns
 mergedTableCharacteristicsTermSource <- dcast(mergedTableCharacteristics,
-                                              C4_Cell_Line_ID ~ variable,
+                                              C4_Cell_Line_ID + Diffname_short ~ variable,
                                               value.var="Source_Ontology")
 
-rownames(mergedTableCharacteristicsTermSource) <- mergedTableCharacteristicsTermSource$C4_Cell_Line_ID
+
+rownames(mergedTableCharacteristicsTermSource) <- with(mergedTableCharacteristicsTermSource,
+                                                       paste(C4_Cell_Line_ID,
+                                                             Diffname_short,
+                                                             sep=" "))
+
 mergedTableCharacteristicsTermSource$C4_Cell_Line_ID <- NULL
+mergedTableCharacteristicsTermSource$Diffname_short <- NULL
+
 colnames(mergedTableCharacteristicsTermSource) <- paste("Term Source REF[", 
                                              colnames(mergedTableCharacteristicsTermSource), 
                                              "]", sep="")
 
 # Get Accession columns
 mergedTableCharacteristicsTermAccessions <- dcast(mergedTableCharacteristics,
-                                                  C4_Cell_Line_ID ~ variable,
+                                                  C4_Cell_Line_ID + Diffname_short ~ variable,
                                                   value.var="URL_Xref")
 
-rownames(mergedTableCharacteristicsTermAccessions) <- mergedTableCharacteristicsTermAccessions$C4_Cell_Line_ID
+rownames(mergedTableCharacteristicsTermAccessions) <- with(mergedTableCharacteristicsTermAccessions,
+                                                           paste(C4_Cell_Line_ID,
+                                                                 Diffname_short,
+                                                                 sep=" "))
+
 mergedTableCharacteristicsTermAccessions$C4_Cell_Line_ID <- NULL
+mergedTableCharacteristicsTermAccessions$Diffname_short <- NULL
+
 colnames(mergedTableCharacteristicsTermAccessions) <- paste("Term Accession Number[", 
                                              colnames(mergedTableCharacteristicsTermAccessions), 
                                              "]", sep="")
@@ -183,20 +202,34 @@ combinedCharacteristicsCols <- combinedCharacteristicsCols[, reorderedCols]
 
 # Free text as characteristics
 freetextTermValues <- dcast(metadataTableFreetext, 
-                            C4_Cell_Line_ID ~ variable,
+                            C4_Cell_Line_ID + Diffname_short ~ variable,
                             value.var="value")
 
+rownames(freetextTermValues) <- with(freetextTermValues,
+                                     paste(C4_Cell_Line_ID,
+                                           Diffname_short,
+                                           sep=" "))
+
 freetextTermValues$C4_Cell_Line_ID <- NULL
+freetextTermValues$Diffname_short <- NULL
+
 colnames(freetextTermValues) <- paste("Characteristics[", 
                                       colnames(freetextTermValues), 
                                       "]", sep="")
 
 # Free text as parameters
 freetextParamValues <- dcast(metadataTableFreetextParams, 
-                            C4_Cell_Line_ID ~ variable,
+                            C4_Cell_Line_ID + Diffname_short ~ variable,
                             value.var="value")
 
+rownames(freetextParamValues) <- with(freetextParamValues,
+                                      paste(C4_Cell_Line_ID,
+                                            Diffname_short,
+                                            sep=" "))
+
 freetextParamValues$C4_Cell_Line_ID <- NULL
+freetextParamValues$Diffname_short <- NULL
+
 colnames(freetextParamValues) <- paste("Parameter Value[", 
                                       colnames(freetextParamValues), 
                                       "]", sep="")
@@ -230,4 +263,4 @@ synfileMe <- synStore(synfileMe)
 synfile  <- File(path="s_PCBC_all.csv", parentId="syn2814512")
 synfile <- synStore(synfile, 
                     executed=synfileMe$properties$id,
-                    used=c(metadataStandardSynId, metadataTableSynId))
+                    used=c(metadataStandardSynId))
