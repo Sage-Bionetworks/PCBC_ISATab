@@ -52,6 +52,9 @@ metadataTable <- filter(metadataTable, C4_Cell_Line_ID != "")
 ## Only temporary until someone decides it's fate
 metadataTable <- filter(metadataTable, C4_Cell_Line_ID != 'SC12-041')
 
+## Also should be temporary - metadata is missing!
+metadataTable <- filter(metadataTable, !(C4_Cell_Line_ID  %in% c('H9Hypox', 'SC14-066')))
+
 # Columns that uniquely identify records
 # Everything else is a measurement
 metadataTableMelted <- tbl_df(melt(metadataTable, id.vars=metadataTableIdVars))
@@ -59,8 +62,6 @@ metadataTableMelted <- tbl_df(melt(metadataTable, id.vars=metadataTableIdVars))
 
 # These are free text, not in the ontology, and don't need Source or Accession descriptor columns
 # Hence, they do not need to be merged with the metadataStandard and can be included as is.
-
-
 
 # These should be Parameter Values
 # paramCols <- c("Reprogramming_Vector_Type")
