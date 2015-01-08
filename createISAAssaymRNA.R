@@ -18,30 +18,23 @@ mrnaAll <- qr$collectAll()
 mrnaAll <- tbl_df(mrnaAll)
 colnames(mrnaAll) <- gsub("file\\.", "", colnames(mrnaAll))
 
-mrnaAll$fpkmType <- gsub(".*_(.*)\\.fpkm_tracking", "\\1", mrnaAll$name)
-
-
 mrnaBam <- filter(mrnaAll, fileType=="bam", bamType=="mapped")
 mrnaFastq <- filter(mrnaAll, fileType=="fastq")
 mrnaFpkm <- filter(mrnaAll, fileType=="fpkm", fpkmType == "genes")
+# mrnaFpkmIso <- filter(mrnaAll, fileType=="fpkm", fpkmType == "isoforms")
 
 mrnaUse <- rbind(mrnaBam, mrnaFastq, mrnaFpkm)
+castToISA <- dcast(mrnaUse, UID + C4_Cell_Line_ID + Diffname_short ~ fileType,
+                   value.var="name",
+                   fun.aggregate=function(x) paste(x, collapse=","))
 
-intersectUIDs <- intersect(mrnaBam$UID, mrnaFastq$UID)
-missingFastqUIDs <- setdiff(mrnaBam$UID, mrnaFastq$UID)
-missingBamUIDs <- setdiff(mrnaFastq$UID, mrnaBam$UID)
+castToISA <- filter(castToISA, bam != "", fastq != "", fpkm != "")
 
-length(intersectUIDs)
-length(missingBamUIDs)
-length(missingFastqUIDs)
+castToISA$fastq.source <- "Synapse"
+castToISA$bam.source <- "Synapse"
+castToISA$fpkm.source <- "Synapse"
 
-head(mrnaFastq[, generalCols])
-filter(mrnaUse, UID %in% missingBamUIDs[1:5])[, generalCols]
+castToISA$fastq.id <- mrnaUse$id[match(castToISA$fastq, mrnaUse$name)]
+castToISA$bam.id <- mrnaUse$id[match(castToISA$bam, mrnaUse$name)]
+castToISA$fpkm.id <- mrnaUse$id[match(castToISA$fpkm, mrnaUse$name)]
 
-filter(mrnaUse, C4_Cell_Line_ID=="H9", Diffname_short=="EB")[, generalCols]
-
-meltByFileType <- melt(mrnaUse, id.vars=c("id", "UID", "C4_Cell_Line_ID", "Diffname_short"),
-                       measure.vars="fileType")
-
-mRNABinaryStatus <- dcast(meltByFileType,  UID ~ value)[, c("UID", "fastq", "bam", "fpkm")]
-write.csv(mRNABinaryStatus, file="./mRNABinaryStatus.csv")
