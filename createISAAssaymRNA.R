@@ -13,7 +13,7 @@ fileTypes <- c("bam", "fastq")
 
 ## Get all the files
 queryAll <- "select * from file where benefactorId=='syn1773109' AND dataType=='mRNA'"
-qr <- synQuery(queryAll, blockSize = 50)
+qr <- synQuery(queryAll, blockSize = 250)
 mrnaAll <- qr$collectAll()
 mrnaAll <- tbl_df(mrnaAll)
 colnames(mrnaAll) <- gsub("file\\.", "", colnames(mrnaAll))
@@ -44,15 +44,19 @@ castToISA <- dcast(mrnaUse,
 # castToISA <- filter(castToISA, bam_mapped != "", fastq_fastq != "", fpkm_genes != "", fpkm_isoform != "")
 
 castToISA$fastq.comment <- paste("Synapse ID", mrnaUse$id[match(castToISA$fastq_fastq, mrnaUse$name)])
+castToISA$fastq.comment[castToISA$fastq.comment == "Synapse ID NA"] <- ""
 
 castToISA$bam.trans.name <- "Alignment"
 castToISA$bam.comment <- paste("Synapse ID", mrnaUse$id[match(castToISA$bam_mapped, mrnaUse$name)])
+castToISA$bam.comment[castToISA$bam.comment == "Synapse ID NA"] <- ""
 
 castToISA$fpkm_genes.trans.name <- "Cufflinks Genes"
 castToISA$fpkm_genes.comment <- paste("Synapse ID", mrnaUse$id[match(castToISA$fpkm_genes, mrnaUse$name)])
+castToISA$fpkm_genes.comment[castToISA$fpkm_genes.comment == "Synapse ID NA"] <- ""
 
 castToISA$fpkm_isoform.trans.name <- "Cufflinks Isoforms"
-castToISA$fpkm_isoform.comment <- paste("Synapse", mrnaUse$id[match(castToISA$fpkm_isoform, mrnaUse$name)])
+castToISA$fpkm_isoform.comment <- paste("Synapse ID", mrnaUse$id[match(castToISA$fpkm_isoform, mrnaUse$name)])
+castToISA$fpkm_isoform.comment[castToISA$fpkm_isoform.comment == "Synapse ID NA"] <- ""
 
 castToISA <- tbl_df(castToISA)
 

@@ -25,24 +25,27 @@ characteristicsCols <- c("Donor_Life_Stage", "Race", "Ethnicity", "Gender", "Gen
 
 
 ## Get the metadata standard
-metadataStandardSynId <- "syn2767699"
-query <- paste("SELECT * FROM", metadataStandardSynId)
+metadataStandard <- synGet("syn2767699")
+query <- paste("SELECT * FROM", metadataStandard$properties$id)
 queryResult <- synTableQuery(query, loadResult=TRUE)
 metadataStandard <- tbl_df(queryResult@values)
 
 ## Get the metadata table describing the cell lines
 ## Using annotations on mRNA raw data files
 colnamesToUse <- c(metadataTableIdVars, freetextCols, freetextParams, characteristicsCols)
-                   
+
 queryAll <- sprintf("select %s from file where benefactorId=='syn1773109' AND dataType=='mRNA'",
                     paste(colnamesToUse, collapse=","))
 
-qr <- synQuery(queryAll, blockSize=100)
+qr <- synQuery(queryAll, blockSize=250)
 mrnaAll <- qr$collectAll()
 mrnaAll <- tbl_df(mrnaAll)
 
 # Clean column names
 colnames(mrnaAll) <- gsub("file\\.", "", colnames(mrnaAll))
+
+mrnaAll[mrnaAll == "N/A"] <- NA
+mrnaAll[mrnaAll == ""] <- NA
 
 metadataTable <- distinct(mrnaAll[, colnamesToUse])
 
@@ -54,6 +57,7 @@ metadataTable <- filter(metadataTable, C4_Cell_Line_ID != 'SC12-041')
 
 ## Also should be temporary - metadata is missing!
 metadataTable <- filter(metadataTable, !(C4_Cell_Line_ID  %in% c('H9Hypox', 'SC14-066')))
+
 
 # Columns that uniquely identify records
 # Everything else is a measurement
@@ -256,12 +260,12 @@ colnames(combinedCols) <- gsub(pattern="Term Accession Number.*", "Term Accessio
 ## Output, including saving and uploading the script and output file to Synapse.
 ## Records provenance to include the Synapse tables queried to create this file.
 
-write.csv(combinedCols, file="s_PCBC_all.csv", row.names=FALSE)
+write.csv(combinedCols, file="s_PCBC.csv", row.names=FALSE)
 
 synfileMe  <- File(path="createISASample.R", parentId="syn2814512")
 synfileMe <- synStore(synfileMe)
 
-synfile  <- File(path="s_PCBC_all.csv", parentId="syn2814512")
+synfile  <- File(path="s_PCBC.csv", parentId="syn2814512")
 synfile <- synStore(synfile, 
                     executed=synfileMe$properties$id,
                     used=c(metadataStandardSynId))
