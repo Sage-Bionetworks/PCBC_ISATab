@@ -15,7 +15,7 @@ generalCols <- c("UID", "C4_Cell_Line_ID", "dataType", "fileType", "Diffname_sho
 fileTypes <- c("bam", "fastq")
 
 ## Get all the files
-queryAll <- "select id,name,UID,C4_Cell_Line_ID,Diffname_short,fileType,bamType,fpkmType from file where benefactorId=='syn1773109' AND dataType=='mRNA'"
+queryAll <- "select id,name,UID,C4_Cell_Line_ID,Diffname_short,fileType,fileSubType,bamType,fpkmType from file where benefactorId=='syn1773109' AND dataType=='mRNA'"
 qr <- synQuery(queryAll, blockSize = 250)
 mrnaAll <- qr$collectAll()
 mrnaAll <- tbl_df(mrnaAll)
@@ -23,26 +23,28 @@ colnames(mrnaAll) <- gsub("file\\.", "", colnames(mrnaAll))
 
 mrnaAll <- merge(mrnaAll, rnaSeqMetadata, by="UID")
 
-mrnaAll <- filter(mrnaAll, Diffname_short %in% c("SC", "EB"))
+mrnaAll <- filter(mrnaAll, Diffname_short %in% c("DE", "MESO-5", "MESO-15", 
+                                                 "MESO-30", "SC", "EB", "ECTO"),
+                  public, pass_qc, !exclude)
 
 # The raw data file
-mrnaFastq <- filter(mrnaAll, fileType=="fastq")
+mrnaFastq <- filter(mrnaAll, fileType=="fastq", public)
 
 # Derived files
-mrnaBam <- filter(mrnaAll, fileType=="bam", bamType=="mapped")
-mrnaFpkmGene <- filter(mrnaAll, fileType=="fpkm", fpkmType == "genes")
-mrnaFpkmIso <- filter(mrnaAll, fileType=="fpkm", fpkmType == "isoform")
+mrnaBam <- filter(mrnaAll, fileType=="bam", fileSubType=="mapped")
+mrnaFpkmGene <- filter(mrnaAll, fileType=="fpkm", fileSubType == "genes")
+mrnaFpkmIso <- filter(mrnaAll, fileType=="fpkm", fileSubType == "isoform")
 
-## Convert separate file types to a subtype attribute
-mrnaBam$subType  <- "mapped"
-mrnaFastq$subType <- "fastq"
-mrnaFpkmGene$subType <- "genes"
-mrnaFpkmIso$subType <- "isoform"
+# ## Convert separate file types to a subtype attribute
+# mrnaBam$subType  <- "mapped"
+mrnaFastq$fileSubType <- "fastq"
+# mrnaFpkmGene$subType <- "genes"
+# mrnaFpkmIso$subType <- "isoform"
 
 mrnaUse <- rbind(mrnaBam, mrnaFastq, mrnaFpkmGene, mrnaFpkmIso)
 
 mrnaUse <- filter(mrnaUse,
-                  !is.na(replicate), replicate != "",
+                  # !is.na(replicate), replicate != "",
                   !is.na(Diffname_short), Diffname_short != "",
                   !is.na(C4_Cell_Line_ID), C4_Cell_Line_ID != ""
                   )
@@ -50,7 +52,7 @@ mrnaUse <- filter(mrnaUse,
 mrnaUse$sample.name <- with(mrnaUse, paste(C4_Cell_Line_ID, replicate, Diffname_short))
 
 castToISA <- dcast(mrnaUse,
-                   sample.name + UID ~ fileType + subType,
+                   sample.name + UID ~ fileType + fileSubType,
                    value.var="name",
                    fun.aggregate=function(x) paste(x, collapse=","))
 
